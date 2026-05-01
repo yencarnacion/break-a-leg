@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>break-a-leg</title>
+  <link rel="stylesheet" href="/web/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>break-a-leg</h1>
+      <p>Premarket HOD burst assistant</p>
+    </div>
+    <div class="status">
+      <button id="sound-toggle" class="sound-toggle" type="button">Sound on</button>
+      <label class="news-audio-toggle">
+        <input id="news-audio-only" type="checkbox" checked>
+        <span>News only</span>
+      </label>
+      <strong id="mode">DUMMY MODE</strong>
+      <span id="health">connecting</span>
+      <span id="updated">never</span>
+    </div>
+  </header>
+  <main>
+    <nav class="tabs" aria-label="Views">
+      <button id="alerts-tab" class="tab active" type="button" data-tab="alerts-panel">Alerts</button>
+      <button class="tab" type="button" data-tab="gappers-panel">Gappers</button>
+      <button class="tab" type="button" data-tab="orders-panel">Orders</button>
+    </nav>
+    <section id="alerts-panel" class="panel active">
+      <section id="alerts" class="alerts"></section>
+    </section>
+    <section id="gappers-panel" class="panel">
+      <div class="gappers-head">
+        <div>
+          <h2>Gappers</h2>
+          <p>Watchlist names above configured percent and premarket volume thresholds</p>
+        </div>
+        <time id="ny-clock" class="ny-clock"></time>
+      </div>
+      <div class="table-wrap">
+        <table class="gappers-table">
+          <thead>
+            <tr>
+              <th><button type="button" data-sort="ticker">Ticker</button></th>
+              <th><button type="button" data-sort="last_price">Last</button></th>
+              <th><button type="button" data-sort="percent_change">% Change</button></th>
+              <th><button type="button" data-sort="premarket_volume">Volume</button></th>
+              <th><button type="button" data-sort="company_name">Company</button></th>
+            </tr>
+          </thead>
+          <tbody id="gappers-body"></tbody>
+        </table>
+      </div>
+    </section>
+    <section id="orders-panel" class="panel">
+      <div class="orders-head">
+        <div>
+          <h2>Orders</h2>
+          <p>Paper trades filled at ask plus $0.10 and closed at bid minus $0.10</p>
+        </div>
+        <div class="orders-summary">
+          <div><span>Realized P/L</span><strong id="orders-realized">$0.00</strong></div>
+          <div><span>Unrealized P/L</span><strong id="orders-unrealized">$0.00</strong></div>
+          <div><span>Total P/L</span><strong id="orders-total">$0.00</strong></div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>Ticker</th>
+              <th class="num">Qty</th>
+              <th class="num">Open</th>
+              <th class="num">Last</th>
+              <th class="num">Exit Est.</th>
+              <th class="num">Unrealized</th>
+              <th class="num">Realized</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="orders-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <template id="alert-template">
+    <article class="card">
+      <div class="card-head">
+        <div>
+          <a class="ticker" target="_blank" rel="noreferrer"></a>
+          <span class="pill burst"></span>
+        </div>
+        <time></time>
+      </div>
+      <div class="metrics">
+        <div><span>Last</span><strong class="price"></strong></div>
+        <div><span>Change</span><strong class="change"></strong></div>
+        <div><span>Premkt Vol</span><strong class="volume"></strong></div>
+        <div><span>HODs</span><strong class="hods"></strong></div>
+      </div>
+      <div class="line news"></div>
+      <a class="news-link" target="_blank" rel="noreferrer">Open press release</a>
+      <div class="line states"></div>
+      <details class="article-wrap">
+        <summary>Article</summary>
+        <div class="article-body"></div>
+      </details>
+      <details open>
+        <summary>LLM analysis</summary>
+        <a class="analysis-link" target="_blank" rel="noreferrer">Open full analysis</a>
+        <div class="markdown analysis"></div>
+      </details>
+      <div class="actions">
+        <button data-button="buy-small">Buy small</button>
+        <button data-button="buy-medium">Buy medium</button>
+        <button data-button="buy-large">Buy large</button>
+        <button class="audio">Audio</button>
+      </div>
+      <div class="trade-log"></div>
+    </article>
+  </template>
+  <script src="/web/app.js"></script>
+</body>
+</html>

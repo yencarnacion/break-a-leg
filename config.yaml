@@ -1,0 +1,109 @@
+server:
+  host: "127.0.0.1"
+  port: 8097
+
+session:
+  timezone: "America/New_York"
+  premarket_start: "04:00"
+  regular_open: "09:30"
+  regular_close: "16:00"
+
+watchlists:
+  files:
+    - "watchlist.yaml"
+
+market_data:
+  provider: "massive"
+  rest_base_url: "https://api.massive.com"
+  websocket_url: "wss://socket.massive.com/stocks"
+  reconnect_seconds: 5
+  backfill_workers: 6
+
+burst:
+  enabled: true
+  min_premarket_volume: 20000
+  full_trigger_min_percent_change: 10.0
+  soft_trigger_enabled: true
+  soft_trigger_min_percent_change: 5.0
+  hod_count_required: 2
+  hod_window_seconds: 60
+  workflow_cooldown_seconds: 60
+
+gappers:
+  min_percent_change: 10.0
+  min_premarket_volume: 20000
+  refresh_seconds: 5
+
+news:
+  provider: "rtpr"
+  rest_base_url: "https://api.rtpr.io"
+  lookup_limit: 5
+  fresh_minutes: 30
+  recent_hours: 4
+  timeout_seconds: 10
+  run_llm_if_no_news: false
+
+llm:
+  provider: "perplexity"
+  model: "sonar-pro"
+  base_url: "https://api.perplexity.ai/chat/completions"
+  search_mode: "sec"
+  prompt_file: "prompts/news_analysis.md"
+  timeout_seconds: 90
+  enabled: true
+
+tts:
+  provider: "openai"
+  model: "gpt-4o-mini-tts"
+  voice: "alloy"
+  output_format: "mp3"
+  enabled: true
+  autoplay_in_ui: false
+
+ui:
+  chart_opener_base_url: "http://localhost:8081"
+  max_alert_cards: 200
+
+broker:
+  provider: "dummy"
+  dummy_mode: true
+  trading_enabled: false
+
+risk:
+  max_shares_per_order: 1000
+  max_notional_per_order: 25000
+  max_orders_per_ticker_per_day: 10
+  duplicate_order_cooldown_seconds: 2
+  allowed_order_types:
+    - "limit"
+  max_limit_price_deviation_percent_from_last: 3.0
+  require_manual_click: true
+  block_if_no_market_data: true
+  block_if_ticker_not_in_watchlist: true
+  block_if_alert_stale_seconds: 300
+
+trade_buttons:
+  - id: "buy-small"
+    label: "Buy small"
+    side: "buy"
+    quantity: 100
+    order_type: "limit"
+    limit_price_mode: "last_plus_percent"
+    limit_price_offset_percent: 0.25
+    time_in_force: "DAY"
+  - id: "buy-medium"
+    label: "Buy medium"
+    side: "buy"
+    quantity: 300
+    order_type: "limit"
+    limit_price_mode: "last_plus_percent"
+    limit_price_offset_percent: 0.25
+    time_in_force: "DAY"
+  - id: "buy-large"
+    label: "Buy large"
+    side: "buy"
+    quantity: 500
+    order_type: "limit"
+    limit_price_mode: "last_plus_percent"
+    limit_price_offset_percent: 0.25
+    time_in_force: "DAY"
