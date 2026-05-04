@@ -107,9 +107,36 @@ function newsFreshnessClass(status) {
   }
 }
 
+function alertDisplayScore(alert) {
+  const articleFreshness = alert.article?.freshness || "";
+  const freshness = String(alert.news_status || articleFreshness).toLowerCase();
+  let score = 0;
+  if (alert.article?.title) score += 100;
+  if (freshness === "fresh") score += 40;
+  if (freshness === "recent") score += 30;
+  if (freshness === "old") score += 10;
+  if (alert.llm_markdown) score += 25;
+  if (alert.tts_status === "complete" && alert.audio_path) score += 15;
+  if (alert.burst_status === "full") score += 5;
+  if (!alert.cooldown_active) score += 1;
+  return score;
+}
+
+function preferredTickerAlert(current, candidate) {
+  if (!current) return candidate;
+  const currentScore = alertDisplayScore(current);
+  const candidateScore = alertDisplayScore(candidate);
+  if (candidateScore !== currentScore) {
+    return candidateScore > currentScore ? candidate : current;
+  }
+  return new Date(candidate.updated_at) > new Date(current.updated_at) ? candidate : current;
+}
+
 function upsert(alert) {
   const previous = alerts.get(alert.id);
   const becameAudible = alert.audio_path && previous && previous.audio_path !== alert.audio_path;
+  const gainedNews = alertHasNews(alert) && (!previous || !alertHasNews(previous));
+  const gainedAnalysis = Boolean(alert.llm_markdown) && (!previous || previous.llm_markdown !== alert.llm_markdown);
   const nextSignature = alertSignature(alert);
   if (previous && alertSignatures.get(alert.id) !== nextSignature) {
     flashUntil.set(alert.id, Date.now() + 1100);
@@ -121,6 +148,9 @@ function upsert(alert) {
     updateAlertTabLabel();
   }
   markAlertRenderDirty();
+  if (!previous || becameAudible || gainedNews || gainedAnalysis) {
+    render({ force: true });
+  }
   maybePlayAlertAudio(alert);
 }
 
@@ -216,8 +246,8 @@ function drainAudioQueue() {
   });
 }
 
-function render() {
-  if (isPanelActive("alerts-panel") && alertHoverDepth > 0) {
+function render(options = {}) {
+  if (!options.force && isPanelActive("alerts-panel") && alertHoverDepth > 0) {
     pendingAlertRender = true;
     return;
   }
@@ -226,10 +256,7 @@ function render() {
   const latestByTicker = new Map();
   for (const alert of alerts.values()) {
     const ticker = alert.ticker || alert.id;
-    const existing = latestByTicker.get(ticker);
-    if (!existing || new Date(alert.updated_at) > new Date(existing.updated_at)) {
-      latestByTicker.set(ticker, alert);
-    }
+    latestByTicker.set(ticker, preferredTickerAlert(latestByTicker.get(ticker), alert));
   }
   const list = [...latestByTicker.values()].sort((a, b) => {
     const aChange = Number(a.snapshot?.percent_change || 0);
@@ -243,7 +270,8 @@ function render() {
     if ((flashUntil.get(alert.id) || 0) > Date.now()) {
       node.classList.add("updated-flash");
     }
-    const freshnessClass = newsFreshnessClass(alert.news_status);
+    const article = alert.article || {};
+    const freshnessClass = newsFreshnessClass(alert.news_status) || newsFreshnessClass(article.freshness);
     if (freshnessClass) node.classList.add(freshnessClass);
     node.addEventListener("mouseenter", () => {
       alertHoverDepth += 1;
@@ -267,7 +295,6 @@ function render() {
     change.classList.toggle("negative", Number(snap.percent_change) < 0);
     node.querySelector(".volume").textContent = fmtInt(snap.premarket_cumulative_volume);
     node.querySelector(".hods").textContent = `${alert.hod_count || 0}`;
-    const article = alert.article || {};
     const headline = article.title || (alert.news_error ? `News error: ${alert.news_error}` : "No fresh RTPR press release found.");
     node.querySelector(".news").textContent = `${text(alert.news_status)}: ${headline}`;
     const newsLink = node.querySelector(".news-link");
