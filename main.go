@@ -357,16 +357,37 @@ func (a *app) updateExistingAlert(snapshot marketdata.Snapshot) {
 	a.mu.Lock()
 	id := a.alertByTicker[snapshot.Ticker]
 	a.mu.Unlock()
-	if id == "" {
+
+	alerts := a.ui.AlertsForTicker(snapshot.Ticker)
+	if len(alerts) == 0 {
 		return
 	}
-	alert, ok := a.ui.GetAlert(id)
-	if !ok {
-		return
+	now := time.Now()
+	publishedCurrent := false
+	for _, alert := range alerts {
+		if alert.ID != id && !alertHasDisplayContent(alert) {
+			continue
+		}
+		alert.Snapshot = snapshot
+		alert.UpdatedAt = now
+		if alert.ID == id {
+			a.publish(alert, "alerts", id)
+			publishedCurrent = true
+			continue
+		}
+		a.ui.UpsertAlert(alert)
 	}
-	alert.Snapshot = snapshot
-	alert.UpdatedAt = time.Now()
-	a.publish(alert, "alerts", id)
+	if id != "" && !publishedCurrent {
+		if alert, ok := a.ui.GetAlert(id); ok {
+			alert.Snapshot = snapshot
+			alert.UpdatedAt = now
+			a.publish(alert, "alerts", id)
+		}
+	}
+}
+
+func alertHasDisplayContent(alert events.Alert) bool {
+	return alert.Article != nil || strings.TrimSpace(alert.LLMMarkdown) != "" || strings.TrimSpace(alert.AudioPath) != ""
 }
 
 func (a *app) handleTradeIntent(alertID string, req ui.TradeRequest) (ui.TradeResponse, error) {

@@ -115,6 +115,19 @@ func (s *Server) GetAlert(id string) (events.Alert, bool) {
 	return *a, true
 }
 
+func (s *Server) AlertsForTicker(ticker string) []events.Alert {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make([]events.Alert, 0)
+	for _, a := range s.alerts {
+		if strings.EqualFold(a.Ticker, ticker) {
+			out = append(out, *a)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].UpdatedAt.After(out[j].UpdatedAt) })
+	return out
+}
+
 func (s *Server) RecentAlerts() []events.Alert {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

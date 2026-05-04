@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"break-a-leg/internal/config"
+	"break-a-leg/internal/events"
 	"break-a-leg/internal/marketdata"
 	"break-a-leg/internal/news"
 	"break-a-leg/internal/storage"
@@ -75,6 +77,43 @@ func TestSimSellCanCloseWithShortPL(t *testing.T) {
 	}
 	if !near(closed.RealizedPL, 60) {
 		t.Fatalf("expected realized P/L 60, got %.4f", closed.RealizedPL)
+	}
+}
+
+func TestUpdateExistingAlertRefreshesAllTickerAlerts(t *testing.T) {
+	server := ui.NewServer(config.Config{}, nil, nil, nil, nil, nil, func() events.Health { return events.Health{} })
+	a := &app{
+		store:         storage.New(t.TempDir()),
+		ui:            server,
+		alertByTicker: map[string]string{"ABCD": "current"},
+	}
+	server.UpsertAlert(events.Alert{
+		ID:        "news-alert",
+		Ticker:    "ABCD",
+		UpdatedAt: time.Now().Add(-time.Minute),
+		Article:   &news.Article{Title: "news"},
+	})
+	server.UpsertAlert(events.Alert{
+		ID:        "current",
+		Ticker:    "ABCD",
+		UpdatedAt: time.Now(),
+	})
+
+	a.updateExistingAlert(marketdata.Snapshot{Ticker: "ABCD", LastPrice: 12.34})
+
+	newsAlert, ok := server.GetAlert("news-alert")
+	if !ok {
+		t.Fatal("news alert missing")
+	}
+	if !near(newsAlert.Snapshot.LastPrice, 12.34) {
+		t.Fatalf("expected news alert snapshot to update, got %.4f", newsAlert.Snapshot.LastPrice)
+	}
+	current, ok := server.GetAlert("current")
+	if !ok {
+		t.Fatal("current alert missing")
+	}
+	if !near(current.Snapshot.LastPrice, 12.34) {
+		t.Fatalf("expected current alert snapshot to update, got %.4f", current.Snapshot.LastPrice)
 	}
 }
 
