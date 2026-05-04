@@ -174,7 +174,7 @@ function updateSoundToggle() {
     btn.textContent = "Sound on";
   }
   btn.classList.toggle("off", !soundEnabled);
-  btn.classList.toggle("blocked", audioBlocked);
+  btn.classList.toggle("blocked", soundEnabled && audioBlocked);
   btn.setAttribute("aria-pressed", soundEnabled ? "true" : "false");
 }
 
@@ -559,7 +559,17 @@ async function boot() {
     }
   });
   document.querySelector("#sound-toggle").addEventListener("click", () => {
+    if (audioBlocked) {
+      soundEnabled = true;
+      audioBlocked = false;
+      localStorage.setItem("soundEnabled", "true");
+      updateSoundToggle();
+      for (const alert of alerts.values()) maybePlayAlertAudio(alert);
+      drainAudioQueue();
+      return;
+    }
     soundEnabled = !soundEnabled;
+    if (!soundEnabled) audioBlocked = false;
     localStorage.setItem("soundEnabled", soundEnabled ? "true" : "false");
     updateSoundToggle();
     if (soundEnabled) {
