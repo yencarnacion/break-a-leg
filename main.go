@@ -55,6 +55,7 @@ type app struct {
 type simOrder struct {
 	ID         string
 	Ticker     string
+	Side       string
 	Quantity   int64
 	OpenPrice  float64
 	OpenAt     time.Time
@@ -439,6 +440,13 @@ func (a *app) simBuy(req ui.SimOrderRequest) (ui.SimOrderRow, error) {
 	if qty <= 0 {
 		return ui.SimOrderRow{}, fmt.Errorf("quantity must be positive")
 	}
+	side := strings.ToLower(strings.TrimSpace(req.Side))
+	if side == "" {
+		side = "buy"
+	}
+	if side != "buy" && side != "sell" {
+		return ui.SimOrderRow{}, fmt.Errorf("side must be buy or sell")
+	}
 	ticker := strings.ToUpper(strings.TrimSpace(req.Ticker))
 	if ticker == "" && strings.TrimSpace(req.AlertID) != "" {
 		alert, ok := a.ui.GetAlert(req.AlertID)
@@ -454,16 +462,25 @@ func (a *app) simBuy(req ui.SimOrderRequest) (ui.SimOrderRow, error) {
 	if !ok || snapshot.LastPrice <= 0 {
 		return ui.SimOrderRow{}, fmt.Errorf("no market data for %s", ticker)
 	}
-	ask := snapshot.Ask
-	if ask <= 0 {
-		ask = snapshot.LastPrice
+	openPrice := snapshot.Ask
+	if side == "sell" {
+		openPrice = snapshot.Bid
+	}
+	if openPrice <= 0 {
+		openPrice = snapshot.LastPrice
+	}
+	if side == "sell" {
+		openPrice -= 0.10
+	} else {
+		openPrice += 0.10
 	}
 	now := time.Now()
 	order := &simOrder{
-		ID:        "sim-" + shortHash(fmt.Sprintf("%s:%d:%d", ticker, qty, now.UnixNano())),
+		ID:        "sim-" + shortHash(fmt.Sprintf("%s:%s:%d:%d", ticker, side, qty, now.UnixNano())),
 		Ticker:    ticker,
+		Side:      side,
 		Quantity:  qty,
-		OpenPrice: ask + 0.10,
+		OpenPrice: openPrice,
 		OpenAt:    now,
 	}
 	a.mu.Lock()
@@ -487,13 +504,21 @@ func (a *app) simClose(id string) (ui.SimOrderRow, error) {
 	if !ok || snapshot.LastPrice <= 0 {
 		return ui.SimOrderRow{}, fmt.Errorf("no market data for %s", order.Ticker)
 	}
-	bid := snapshot.Bid
-	if bid <= 0 {
-		bid = snapshot.LastPrice
+	closePrice := snapshot.Bid
+	if simOrderSide(order) == "sell" {
+		closePrice = snapshot.Ask
+	}
+	if closePrice <= 0 {
+		closePrice = snapshot.LastPrice
+	}
+	if simOrderSide(order) == "sell" {
+		closePrice += 0.10
+	} else {
+		closePrice -= 0.10
 	}
 	now := time.Now()
 	a.mu.Lock()
-	order.ClosePrice = bid - 0.10
+	order.ClosePrice = closePrice
 	order.CloseAt = &now
 	a.mu.Unlock()
 	_, _ = a.store.WriteJSON("trades", storage.Name(order.Ticker, order.ID+"-close"), order)
@@ -520,9 +545,11 @@ func (a *app) simOrdersResponse() ui.SimOrdersResponse {
 }
 
 func (a *app) simOrderRow(order *simOrder) ui.SimOrderRow {
+	side := simOrderSide(order)
 	row := ui.SimOrderRow{
 		ID:        order.ID,
 		Ticker:    order.Ticker,
+		Side:      side,
 		Quantity:  order.Quantity,
 		OpenPrice: order.OpenPrice,
 		OpenAt:    order.OpenAt,
@@ -531,12 +558,19 @@ func (a *app) simOrderRow(order *simOrder) ui.SimOrderRow {
 	snapshot, ok := a.tracker.Snapshot(order.Ticker)
 	if ok {
 		row.LastPrice = snapshot.LastPrice
-		bid := snapshot.Bid
-		if bid <= 0 {
-			bid = snapshot.LastPrice
+		exitEstimate := snapshot.Bid
+		if side == "sell" {
+			exitEstimate = snapshot.Ask
 		}
-		if bid > 0 {
-			row.ExitEstimate = bid - 0.10
+		if exitEstimate <= 0 {
+			exitEstimate = snapshot.LastPrice
+		}
+		if exitEstimate > 0 {
+			if side == "sell" {
+				row.ExitEstimate = exitEstimate + 0.10
+			} else {
+				row.ExitEstimate = exitEstimate - 0.10
+			}
 		}
 	}
 	if order.CloseAt != nil {
@@ -544,15 +578,29 @@ func (a *app) simOrderRow(order *simOrder) ui.SimOrderRow {
 		row.ClosePrice = order.ClosePrice
 		row.CloseAt = order.CloseAt
 		row.ExitEstimate = order.ClosePrice
-		row.RealizedPL = (order.ClosePrice - order.OpenPrice) * float64(order.Quantity)
+		row.RealizedPL = simOrderPL(side, order.OpenPrice, order.ClosePrice, order.Quantity)
 		row.TotalPL = row.RealizedPL
 		return row
 	}
 	if row.ExitEstimate > 0 {
-		row.UnrealizedPL = (row.ExitEstimate - order.OpenPrice) * float64(order.Quantity)
+		row.UnrealizedPL = simOrderPL(side, order.OpenPrice, row.ExitEstimate, order.Quantity)
 		row.TotalPL = row.UnrealizedPL
 	}
 	return row
+}
+
+func simOrderSide(order *simOrder) string {
+	if strings.ToLower(strings.TrimSpace(order.Side)) == "sell" {
+		return "sell"
+	}
+	return "buy"
+}
+
+func simOrderPL(side string, openPrice, closePrice float64, quantity int64) float64 {
+	if side == "sell" {
+		return (openPrice - closePrice) * float64(quantity)
+	}
+	return (closePrice - openPrice) * float64(quantity)
 }
 
 func (a *app) gappers() []ui.GapperRow {

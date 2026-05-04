@@ -73,53 +73,59 @@ function updateDetail(alert) {
     link.textContent = "";
   }
   document.querySelector("#detail-analysis").innerHTML = renderMarkdown(alert.llm_markdown || alert.llm_error);
-  updateSimBuyLabels();
+  updateSimOrderLabels();
 }
 
-function estimatedLimitPrice() {
-  const quote = Number(latestSnapshot.ask) > 0 ? Number(latestSnapshot.ask) : Number(latestSnapshot.last_price || 0);
-  return quote > 0 ? quote + 0.10 : 0;
+function estimatedLimitPrice(side = "buy") {
+  const isSell = side === "sell";
+  const quote = isSell
+    ? (Number(latestSnapshot.bid) > 0 ? Number(latestSnapshot.bid) : Number(latestSnapshot.last_price || 0))
+    : (Number(latestSnapshot.ask) > 0 ? Number(latestSnapshot.ask) : Number(latestSnapshot.last_price || 0));
+  if (quote <= 0) return 0;
+  return isSell ? quote - 0.10 : quote + 0.10;
 }
 
-function maxTransactionValue(quantity) {
-  const limit = estimatedLimitPrice();
+function maxTransactionValue(quantity, side = "buy") {
+  const limit = estimatedLimitPrice(side);
   return limit > 0 && quantity > 0 ? limit * quantity : 0;
 }
 
-function simBuyLabel(quantity) {
-  const value = maxTransactionValue(quantity);
+function simOrderLabel(side, quantity) {
+  const value = maxTransactionValue(quantity, side);
   const valueText = value > 0 ? fmtMoney(value) : "-";
-  return `Buy ${fmtInt(quantity)} · max ${valueText}`;
+  return `${side === "sell" ? "Sell" : "Buy"} ${fmtInt(quantity)} · ${side === "sell" ? "min" : "max"} ${valueText}`;
 }
 
-function updateSimBuyLabels() {
-  for (const button of document.querySelectorAll(".detail-sim-buy[data-qty]")) {
+function updateSimOrderLabels() {
+  for (const button of document.querySelectorAll(".detail-sim-order[data-qty]")) {
+    const side = button.dataset.side === "sell" ? "sell" : "buy";
     const quantity = Number(button.dataset.qty || 0);
-    button.textContent = simBuyLabel(quantity);
-    const limit = estimatedLimitPrice();
+    button.textContent = simOrderLabel(side, quantity);
+    const limit = estimatedLimitPrice(side);
     button.title = limit > 0 ? `Limit price ${fmtMoney(limit, 4)} x ${fmtInt(quantity)} shares` : "";
   }
-  const customButton = document.querySelector("#detail-buy-custom");
   const customQty = Math.trunc(Number(document.querySelector("#detail-custom-qty")?.value || 0));
-  if (customButton) {
-    const value = maxTransactionValue(customQty);
-    customButton.textContent = `Buy custom · max ${value > 0 ? fmtMoney(value) : "-"}`;
-    const limit = estimatedLimitPrice();
+  for (const customButton of document.querySelectorAll("#detail-buy-custom, #detail-sell-custom")) {
+    const side = customButton.dataset.side === "sell" ? "sell" : "buy";
+    const value = maxTransactionValue(customQty, side);
+    customButton.textContent = `${side === "sell" ? "Sell" : "Buy"} custom · ${side === "sell" ? "min" : "max"} ${value > 0 ? fmtMoney(value) : "-"}`;
+    const limit = estimatedLimitPrice(side);
     customButton.title = limit > 0 && customQty > 0 ? `Limit price ${fmtMoney(limit, 4)} x ${fmtInt(customQty)} shares` : "";
   }
 }
 
-async function submitSimBuy(alertID, quantity) {
+async function submitSimOrder(alertID, side, quantity) {
   const log = document.querySelector("#detail-trade-log");
   if (!Number.isFinite(quantity) || quantity <= 0) {
     log.textContent = "Enter a positive share count.";
     return;
   }
-  log.textContent = `Simulating buy ${quantity.toLocaleString()}...`;
+  const orderSide = side === "sell" ? "sell" : "buy";
+  log.textContent = `Simulating ${orderSide} ${quantity.toLocaleString()}...`;
   const res = await fetch("/api/sim/orders", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ alert_id: alertID, quantity })
+    body: JSON.stringify({ alert_id: alertID, side: orderSide, quantity })
   });
   const raw = await res.text();
   let body = {};
@@ -129,22 +135,22 @@ async function submitSimBuy(alertID, quantity) {
     body = { error: raw };
   }
   if (!res.ok) {
-    log.textContent = body.error || raw || "Simulated buy failed.";
+    log.textContent = body.error || raw || `Simulated ${orderSide} failed.`;
     return;
   }
-  log.textContent = `Bought ${fmtInt(body.quantity)} ${body.ticker} @ $${fmtNum(body.open_price, 4)} limit. Track it in Orders.`;
+  log.textContent = `${orderSide === "sell" ? "Sold" : "Bought"} ${fmtInt(body.quantity)} ${body.ticker} @ $${fmtNum(body.open_price, 4)} limit. Track it in Orders.`;
 }
 
 async function bootDetail() {
   const shell = document.querySelector(".detail-shell");
   const alertID = shell?.dataset.alertId;
   if (!alertID) return;
-  document.querySelector("#detail-custom-qty")?.addEventListener("input", updateSimBuyLabels);
-  for (const button of document.querySelectorAll(".detail-sim-buy")) {
+  document.querySelector("#detail-custom-qty")?.addEventListener("input", updateSimOrderLabels);
+  for (const button of document.querySelectorAll(".detail-sim-order")) {
     button.addEventListener("click", () => {
       const fixedQty = Number(button.dataset.qty || 0);
       const quantity = fixedQty > 0 ? fixedQty : Number(document.querySelector("#detail-custom-qty")?.value || 0);
-      submitSimBuy(alertID, Math.trunc(quantity));
+      submitSimOrder(alertID, button.dataset.side, Math.trunc(quantity));
     });
   }
   const initial = await fetch(`/api/alerts/${encodeURIComponent(alertID)}`).then(r => r.json());

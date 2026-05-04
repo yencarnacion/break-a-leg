@@ -445,6 +445,7 @@ function renderOrders(resp = lastOrdersResponse) {
     link.textContent = order.ticker;
     ticker.appendChild(link);
     tr.appendChild(ticker);
+    tr.appendChild(td((order.side || "buy").toUpperCase()));
     tr.appendChild(td(fmtInt(order.quantity), "num"));
     tr.appendChild(td(fmtMoney(order.open_price, 4), "num"));
     tr.appendChild(td(order.last_price > 0 ? fmtMoney(order.last_price, 4) : "-", "num"));
@@ -469,7 +470,7 @@ function renderOrders(resp = lastOrdersResponse) {
   if ((lastOrdersResponse.orders || []).length === 0) {
     const tr = document.createElement("tr");
     tr.appendChild(tdHTML("No paper trades yet.", "empty-orders"));
-    tr.firstElementChild.colSpan = 9;
+    tr.firstElementChild.colSpan = 10;
     body.appendChild(tr);
   }
 }

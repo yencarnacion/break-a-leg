@@ -726,7 +726,7 @@ button:hover { background: #293139; }
 }
 
 .detail-trade-button,
-.detail-sim-buy {
+.detail-sim-order {
   border-color: #5e6971;
   background: #172026;
   color: #f5f7f4;
@@ -736,8 +736,17 @@ button:hover { background: #293139; }
 }
 
 .detail-trade-button:hover,
-.detail-sim-buy:hover {
+.detail-sim-order:hover {
   background: #26323a;
+}
+
+.detail-sim-sell {
+  border-color: #8d6562;
+  background: #2a1918;
+}
+
+.detail-sim-sell:hover {
+  background: #3a2422;
 }
 
 .detail-custom-buy {

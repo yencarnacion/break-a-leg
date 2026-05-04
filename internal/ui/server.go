@@ -47,12 +47,14 @@ type TradeResponse struct {
 type SimOrderRequest struct {
 	AlertID  string `json:"alert_id,omitempty"`
 	Ticker   string `json:"ticker,omitempty"`
+	Side     string `json:"side,omitempty"`
 	Quantity int64  `json:"quantity"`
 }
 
 type SimOrderRow struct {
 	ID           string     `json:"id"`
 	Ticker       string     `json:"ticker"`
+	Side         string     `json:"side"`
 	Quantity     int64      `json:"quantity"`
 	OpenPrice    float64    `json:"open_price"`
 	OpenAt       time.Time  `json:"open_at"`
@@ -412,13 +414,16 @@ func alertPageHTML(a events.Alert) string {
     <section class="detail-section detail-trade">
       <h2>Paper Trade</h2>
       <div class="detail-actions">
-        <button class="detail-sim-buy" type="button" data-qty="100">Buy 100</button>
-        <button class="detail-sim-buy" type="button" data-qty="1000">Buy 1000</button>
+        <button class="detail-sim-order detail-sim-buy" type="button" data-side="buy" data-qty="100">Buy 100</button>
+        <button class="detail-sim-order detail-sim-buy" type="button" data-side="buy" data-qty="1000">Buy 1000</button>
+        <button class="detail-sim-order detail-sim-sell" type="button" data-side="sell" data-qty="100">Sell 100</button>
+        <button class="detail-sim-order detail-sim-sell" type="button" data-side="sell" data-qty="1000">Sell 1000</button>
         <label class="detail-custom-buy">
           <span>Custom shares</span>
           <input id="detail-custom-qty" type="number" min="1" step="1" value="100">
         </label>
-        <button id="detail-buy-custom" class="detail-sim-buy" type="button">Buy custom</button>
+        <button id="detail-buy-custom" class="detail-sim-order detail-sim-buy" type="button" data-side="buy">Buy custom</button>
+        <button id="detail-sell-custom" class="detail-sim-order detail-sim-sell" type="button" data-side="sell">Sell custom</button>
       </div>
       <div id="detail-trade-log" class="detail-trade-log"></div>
     </section>
