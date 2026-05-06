@@ -334,7 +334,7 @@ func (a *app) runTTS(alert *events.Alert, line string) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	audio, err := a.ttsProvider.Speak(ctx, truncate(line, 4096))
+	audio, err := a.ttsProvider.Speak(ctx, truncate(alertTTSLine(alert.Ticker, line), 4096))
 	if err != nil {
 		alert.TTSStatus = "error"
 		alert.TTSError = err.Error()
@@ -787,6 +787,81 @@ func truncate(v string, max int) string {
 		return v
 	}
 	return v[:max]
+}
+
+func alertTTSLine(ticker, line string) string {
+	ticker = strings.ToUpper(strings.TrimSpace(ticker))
+	line = strings.TrimSpace(line)
+	if ticker == "" {
+		return strings.TrimSpace("HEY! " + line)
+	}
+	nato := natoTicker(ticker)
+	spelled := spelledTicker(ticker)
+	prefix := fmt.Sprintf("HEY! %s. %s. %s.", nato, nato, spelled)
+	if line == "" {
+		return prefix
+	}
+	return prefix + " " + line
+}
+
+var tickerSpeechNames = map[rune]string{
+	'A': "Alpha",
+	'B': "Bravo",
+	'C': "Charlie",
+	'D': "Delta",
+	'E': "Echo",
+	'F': "Foxtrot",
+	'G': "Golf",
+	'H': "Hotel",
+	'I': "India",
+	'J': "Juliett",
+	'K': "Kilo",
+	'L': "Lima",
+	'M': "Mike",
+	'N': "November",
+	'O': "Oscar",
+	'P': "Papa",
+	'Q': "Quebec",
+	'R': "Romeo",
+	'S': "Sierra",
+	'T': "Tango",
+	'U': "Uniform",
+	'V': "Victor",
+	'W': "Whiskey",
+	'X': "X-ray",
+	'Y': "Yankee",
+	'Z': "Zulu",
+	'0': "Zero",
+	'1': "One",
+	'2': "Two",
+	'3': "Three",
+	'4': "Four",
+	'5': "Five",
+	'6': "Six",
+	'7': "Seven",
+	'8': "Eight",
+	'9': "Nine",
+}
+
+func natoTicker(ticker string) string {
+	words := make([]string, 0, len(ticker))
+	for _, r := range ticker {
+		word, ok := tickerSpeechNames[r]
+		if !ok {
+			words = append(words, string(r))
+			continue
+		}
+		words = append(words, word)
+	}
+	return strings.Join(words, " ")
+}
+
+func spelledTicker(ticker string) string {
+	letters := make([]string, 0, len(ticker))
+	for _, r := range ticker {
+		letters = append(letters, string(r))
+	}
+	return strings.Join(letters, " ")
 }
 
 func durationUntilSecond(now time.Time, second int) time.Duration {

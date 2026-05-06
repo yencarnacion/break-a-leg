@@ -45,6 +45,22 @@ func TestPickNewestAfterIgnoresEarlierArticles(t *testing.T) {
 	}
 }
 
+func TestAlertTTSLinePrefixesTicker(t *testing.T) {
+	got := alertTTSLine("ABCD", "ABCD HOD burst, up 42 percent. News: deal announced")
+	want := "HEY! Alpha Bravo Charlie Delta. Alpha Bravo Charlie Delta. A B C D. ABCD HOD burst, up 42 percent. News: deal announced"
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
+func TestAlertTTSLineHandlesDigits(t *testing.T) {
+	got := alertTTSLine("A1", "A1 HOD burst update. News: contract")
+	want := "HEY! Alpha One. Alpha One. A 1. A1 HOD burst update. News: contract"
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
 func TestSimSellCanCloseWithShortPL(t *testing.T) {
 	a := &app{
 		store:     storage.New(t.TempDir()),
