@@ -1,6 +1,6 @@
 # break-a-leg
 
-`break-a-leg` is a local trader-assistance app for premarket HOD burst investigation. It watches a configured ticker list with Massive.com market data, detects sensitive premarket high-of-day burst conditions, checks RTPR press releases, asks Perplexity Sonar in SEC search mode for trader-focused news quality analysis, generates a short OpenAI TTS headline, and shows the result as live web alert cards.
+`break-a-leg` is a local trader-assistance app for premarket HOD burst investigation. It watches a configured ticker list with Massive.com market data, detects sensitive premarket high-of-day burst conditions, checks RTPR press releases, asks Perplexity Sonar in SEC search mode for trader-focused news quality analysis, generates a short TTS headline, and shows the result as live web alert cards.
 
 It is not a fully automated trading bot. The LLM never places trades. Trade buttons create user-selected order intents that pass through risk guardrails before reaching a broker adapter. The default broker is dummy/simulated mode with trading disabled.
 
@@ -46,7 +46,7 @@ The default UI is `http://127.0.0.1:8087`.
 
 ## Configuration
 
-`config.yaml` controls server host/port, premarket session times, watchlist files, Massive reconnect behavior, burst thresholds, RTPR freshness windows, Perplexity LLM settings, OpenAI TTS settings, risk guardrails, broker mode, and trade buttons.
+`config.yaml` controls server host/port, premarket session times, watchlist files, Massive reconnect behavior, burst thresholds, RTPR freshness windows, Perplexity LLM settings, TTS settings, risk guardrails, broker mode, and trade buttons.
 
 The default HOD burst rule is:
 
@@ -78,14 +78,17 @@ llm:
   timeout_seconds: 90
 ```
 
-The TTS provider still uses OpenAI speech generation:
+The TTS provider uses an OpenAI-compatible speech endpoint. The checked-in config points at the local Marvin server:
 
 ```yaml
 tts:
-  model: "gpt-4o-mini-tts"
-  voice: "alloy"
-  output_format: "mp3"
+  model: "tts-1"
+  base_url: "http://marvin:9084/v1/audio/speech"
+  voice: "default"
+  output_format: "wav"
 ```
+
+If `base_url` is left as the OpenAI endpoint, set `OPENAI_API_KEY`. Local compatible servers can omit it.
 
 Disable LLM or TTS by setting `enabled: false` in the relevant section.
 

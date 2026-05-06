@@ -99,7 +99,7 @@ func main() {
 		detector:      burst.NewDetector(cfg.Burst),
 		newsProvider:  news.RTPRProvider{APIKey: os.Getenv("RTPR_API_KEY"), BaseURL: cfg.News.RestBaseURL, Freshness: news.FreshnessConfig{FreshMinutes: cfg.News.FreshMinutes, RecentHours: cfg.News.RecentHours}, Client: &http.Client{Timeout: time.Duration(cfg.News.TimeoutSeconds) * time.Second}},
 		llmAnalyzer:   llm.PerplexityAnalyzer{APIKey: os.Getenv("PPLX_API_KEY"), BaseURL: cfg.LLM.BaseURL, SearchMode: cfg.LLM.SearchMode, Client: &http.Client{Timeout: time.Duration(cfg.LLM.TimeoutSeconds) * time.Second}},
-		ttsProvider:   tts.OpenAIProvider{APIKey: os.Getenv("OPENAI_API_KEY"), Model: cfg.TTS.Model, Voice: cfg.TTS.Voice, OutputFormat: cfg.TTS.OutputFormat, Client: &http.Client{Timeout: 30 * time.Second}},
+		ttsProvider:   tts.OpenAIProvider{APIKey: os.Getenv("OPENAI_API_KEY"), Model: cfg.TTS.Model, BaseURL: cfg.TTS.BaseURL, Voice: cfg.TTS.Voice, OutputFormat: cfg.TTS.OutputFormat, Client: &http.Client{Timeout: 30 * time.Second}},
 		broker:        broker.DummyBroker{TradingEnabled: cfg.Broker.TradingEnabled, DummyMode: true},
 		riskEngine:    risk.NewEngine(cfg.Risk, cfg.Broker.TradingEnabled),
 		watchlist:     watchset,

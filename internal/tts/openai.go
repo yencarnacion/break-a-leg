@@ -18,6 +18,7 @@ type Provider interface {
 type OpenAIProvider struct {
 	APIKey       string
 	Model        string
+	BaseURL      string
 	Voice        string
 	OutputFormat string
 	Client       *http.Client
@@ -31,7 +32,12 @@ func (p OpenAIProvider) Extension() string {
 }
 
 func (p OpenAIProvider) Speak(ctx context.Context, text string) ([]byte, error) {
-	if strings.TrimSpace(p.APIKey) == "" {
+	endpoint := strings.TrimSpace(p.BaseURL)
+	if endpoint == "" {
+		endpoint = "https://api.openai.com/v1/audio/speech"
+	}
+	apiKey := strings.TrimSpace(p.APIKey)
+	if apiKey == "" && isOpenAIEndpoint(endpoint) {
 		return nil, fmt.Errorf("OPENAI_API_KEY is empty")
 	}
 	model := p.Model
@@ -52,11 +58,13 @@ func (p OpenAIProvider) Speak(ctx context.Context, text string) ([]byte, error) 
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.openai.com/v1/audio/speech", bytes.NewReader(b))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(b))
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+p.APIKey)
+	if apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+	}
 	req.Header.Set("Content-Type", "application/json")
 	client := p.Client
 	if client == nil {
@@ -75,4 +83,8 @@ func (p OpenAIProvider) Speak(ctx context.Context, text string) ([]byte, error) 
 		return nil, fmt.Errorf("openai speech status %d: %s", resp.StatusCode, string(data))
 	}
 	return data, nil
+}
+
+func isOpenAIEndpoint(endpoint string) bool {
+	return strings.Contains(strings.ToLower(endpoint), "api.openai.com")
 }

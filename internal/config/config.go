@@ -90,6 +90,7 @@ type LLMConfig struct {
 type TTSConfig struct {
 	Provider     string `yaml:"provider"`
 	Model        string `yaml:"model"`
+	BaseURL      string `yaml:"base_url"`
 	Voice        string `yaml:"voice"`
 	OutputFormat string `yaml:"output_format"`
 	Enabled      bool   `yaml:"enabled"`
@@ -196,6 +197,7 @@ func Defaults() Config {
 	cfg.LLM.Enabled = true
 	cfg.TTS.Provider = "openai"
 	cfg.TTS.Model = "gpt-4o-mini-tts"
+	cfg.TTS.BaseURL = "https://api.openai.com/v1/audio/speech"
 	cfg.TTS.Voice = "alloy"
 	cfg.TTS.OutputFormat = "mp3"
 	cfg.TTS.Enabled = true
