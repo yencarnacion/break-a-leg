@@ -198,7 +198,6 @@ func Defaults() Config {
 	cfg.TTS.Provider = "openai"
 	cfg.TTS.Model = "gpt-4o-mini-tts"
 	cfg.TTS.BaseURL = "https://api.openai.com/v1/audio/speech"
-	cfg.TTS.Voice = "alloy"
 	cfg.TTS.OutputFormat = "mp3"
 	cfg.TTS.Enabled = true
 	cfg.UI.ChartOpenerBaseURL = "http://localhost:8081"
@@ -314,9 +313,6 @@ func (c *Config) applyDefaults() {
 	}
 	if c.TTS.Model == "" {
 		c.TTS.Model = d.TTS.Model
-	}
-	if c.TTS.Voice == "" {
-		c.TTS.Voice = d.TTS.Voice
 	}
 	if c.TTS.OutputFormat == "" {
 		c.TTS.OutputFormat = d.TTS.OutputFormat

@@ -56,7 +56,6 @@ tts:
   provider: "openai"
   model: "tts-1"
   base_url: "http://marvin:9084/v1/audio/speech"
-  voice: "default"
   output_format: "wav"
   enabled: true
   autoplay_in_ui: false

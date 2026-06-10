@@ -84,11 +84,10 @@ The TTS provider uses an OpenAI-compatible speech endpoint. The checked-in confi
 tts:
   model: "tts-1"
   base_url: "http://marvin:9084/v1/audio/speech"
-  voice: "default"
   output_format: "wav"
 ```
 
-If `base_url` is left as the OpenAI endpoint, set `OPENAI_API_KEY`. Local compatible servers can omit it.
+If `base_url` is left as the OpenAI endpoint, set `OPENAI_API_KEY`; the OpenAI-hosted voice defaults to `alloy`. Local Chatterbox-compatible servers can omit the API key and should normally omit `voice`: the app calls `/v1/audio/voices`, picks the first returned filename, and sends that filename to `/v1/audio/speech`. To force a local voice, pass `--voice SomeVoice.wav` or set `tts.voice`.
 
 Disable LLM or TTS by setting `enabled: false` in the relevant section.
 

@@ -66,6 +66,7 @@ type simOrder struct {
 func main() {
 	configPath := flag.String("config", "config.yaml", "config file")
 	watchlistOverride := flag.String("watchlist", "", "comma-separated watchlist file override")
+	voiceOverride := flag.String("voice", "", "TTS voice filename override")
 	flag.Parse()
 
 	_ = godotenv.Load(".env")
@@ -75,6 +76,9 @@ func main() {
 	}
 	if strings.TrimSpace(*watchlistOverride) != "" {
 		cfg.Watchlists.Files = splitCSV(*watchlistOverride)
+	}
+	if strings.TrimSpace(*voiceOverride) != "" {
+		cfg.TTS.Voice = strings.TrimSpace(*voiceOverride)
 	}
 	symbols, watchset, companyNames, err := config.LoadWatchlists(cfg.Watchlists.Files)
 	if err != nil {

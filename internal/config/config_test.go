@@ -48,3 +48,19 @@ func TestLoadWatchlistsSupportsAlertcatStyleSymbolEntries(t *testing.T) {
 		t.Fatalf("missing company name: %#v", names)
 	}
 }
+
+func TestLoadLeavesOmittedTTSVoiceEmpty(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+	body := "tts:\n  base_url: \"http://marvin:9084/v1/audio/speech\"\n"
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.TTS.Voice != "" {
+		t.Fatalf("expected omitted TTS voice to stay empty, got %q", cfg.TTS.Voice)
+	}
+}
