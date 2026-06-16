@@ -49,6 +49,34 @@ func TestLoadWatchlistsSupportsAlertcatStyleSymbolEntries(t *testing.T) {
 	}
 }
 
+func TestLoadWatchlistsSupportsTextFile(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "watchlist.txt")
+	body := "# penny stocks\nabcd\nXYZ\nabcd\nmnpr, op\nqrst\tuvwx # inline comment\n"
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	symbols, seen, names, err := LoadWatchlists([]string{path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"ABCD", "XYZ", "MNPR", "OP", "QRST", "UVWX"}
+	if len(symbols) != len(want) {
+		t.Fatalf("unexpected symbols: %#v", symbols)
+	}
+	for i := range want {
+		if symbols[i] != want[i] {
+			t.Fatalf("unexpected symbols: %#v", symbols)
+		}
+		if !seen[want[i]] {
+			t.Fatalf("missing seen entry %s: %#v", want[i], seen)
+		}
+	}
+	if len(names) != 0 {
+		t.Fatalf("unexpected names: %#v", names)
+	}
+}
+
 func TestLoadLeavesOmittedTTSVoiceEmpty(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.yaml")

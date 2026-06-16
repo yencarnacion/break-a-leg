@@ -65,7 +65,7 @@ type simOrder struct {
 
 func main() {
 	configPath := flag.String("config", "config.yaml", "config file")
-	watchlistOverride := flag.String("watchlist", "", "comma-separated watchlist file override")
+	watchlistOverride := flag.String("watchlist", "", "comma-separated YAML or text watchlist file override")
 	voiceOverride := flag.String("voice", "", "TTS voice filename override")
 	flag.Parse()
 

@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -350,43 +351,74 @@ func LoadWatchlists(paths []string) ([]string, map[string]bool, map[string]strin
 	seen := map[string]bool{}
 	names := map[string]string{}
 	var ordered []string
+	add := func(t, name string) {
+		s := strings.ToUpper(strings.TrimSpace(t))
+		if s == "" {
+			return
+		}
+		if strings.TrimSpace(name) != "" && names[s] == "" {
+			names[s] = strings.TrimSpace(name)
+		}
+		if seen[s] {
+			return
+		}
+		seen[s] = true
+		ordered = append(ordered, s)
+	}
 	for _, path := range paths {
 		if strings.TrimSpace(path) == "" {
 			continue
 		}
-		var wl Watchlist
 		b, err := os.ReadFile(path)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("load watchlist %s: %w", path, err)
 		}
-		if err := yaml.Unmarshal(b, &wl); err != nil {
-			return nil, nil, nil, fmt.Errorf("parse watchlist %s: %w", path, err)
-		}
-		add := func(t, name string) {
-			s := strings.ToUpper(strings.TrimSpace(t))
-			if s == "" {
-				return
+		if isTextWatchlist(path) {
+			for _, t := range parseTextWatchlist(string(b)) {
+				add(t, "")
 			}
-			if strings.TrimSpace(name) != "" && names[s] == "" {
-				names[s] = strings.TrimSpace(name)
+		} else {
+			var wl Watchlist
+			if err := yaml.Unmarshal(b, &wl); err != nil {
+				return nil, nil, nil, fmt.Errorf("parse watchlist %s: %w", path, err)
 			}
-			if seen[s] {
-				return
+			for _, t := range wl.Tickers {
+				add(t, "")
 			}
-			seen[s] = true
-			ordered = append(ordered, s)
-		}
-		for _, t := range wl.Tickers {
-			add(t, "")
-		}
-		for _, entry := range wl.Watchlist {
-			add(entry.Symbol, entry.Name)
+			for _, entry := range wl.Watchlist {
+				add(entry.Symbol, entry.Name)
+			}
 		}
 	}
 	if len(ordered) == 0 {
 		return nil, nil, nil, fmt.Errorf("watchlist is empty")
 	}
 	return ordered, seen, names, nil
+}
+
+func isTextWatchlist(path string) bool {
+	return strings.EqualFold(filepath.Ext(path), ".txt")
+}
+
+func parseTextWatchlist(body string) []string {
+	var symbols []string
+	for _, line := range strings.Split(body, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if i := strings.Index(line, "#"); i >= 0 {
+			line = strings.TrimSpace(line[:i])
+		}
+		for _, part := range strings.FieldsFunc(line, func(r rune) bool {
+			return r == ',' || r == '\t' || r == ' '
+		}) {
+			if s := strings.TrimSpace(part); s != "" {
+				symbols = append(symbols, s)
+			}
+		}
+	}
+	return symbols
 }
 
 func SessionTimes(loc *time.Location, start, open string, now time.Time) (time.Time, time.Time, error) {
